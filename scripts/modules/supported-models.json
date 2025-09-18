@@ -71,7 +71,7 @@
 	],
 	"codex-cli": [
 		{
-			"id": "codex-pro",
+			"id": "gpt-5-codex",
 			"swe_score": 0.65,
 			"cost_per_1m_tokens": {
 				"input": 0,
@@ -79,17 +79,6 @@
 			},
 			"allowed_roles": ["main", "fallback", "research"],
 			"max_tokens": 32000,
-			"supported": true
-		},
-		{
-			"id": "codex-lite",
-			"swe_score": 0.55,
-			"cost_per_1m_tokens": {
-				"input": 0,
-				"output": 0
-			},
-			"allowed_roles": ["main", "fallback"],
-			"max_tokens": 16000,
 			"supported": true
 		}
 	],

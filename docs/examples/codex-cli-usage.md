@@ -11,14 +11,14 @@ To route any role through Codex CLI, update `.taskmaster/config.json`:
   "models": {
     "main": {
       "provider": "codex-cli",
-      "modelId": "codex-pro",
+      "modelId": "gpt-5-codex",
       "maxTokens": 32000,
       "temperature": 0.2
     },
     "research": {
       "provider": "codex-cli",
-      "modelId": "codex-lite",
-      "maxTokens": 16000,
+      "modelId": "gpt-5-codex",
+      "maxTokens": 32000,
       "temperature": 0.1
     }
   },
@@ -33,8 +33,7 @@ Task Master accepts `codexCli` settings globally and per command (see below) jus
 
 ## Available Models
 
-- `codex-pro` – full Codex CLI subscription model (SWE score 0.65)
-- `codex-lite` – lighter Codex CLI tier (SWE score 0.55)
+- `gpt-5-codex` - example Codex CLI model id. Run `codex models` to list the exact names available in your subscription and replace this value accordingly.
 
 Refer to [docs/models.md](../models.md) for updated metadata.
 

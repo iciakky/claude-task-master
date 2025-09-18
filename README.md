@@ -76,7 +76,7 @@ At least one (1) of the following is required:
 - xAI API Key (for research or main model)
 - OpenRouter API Key (for research or main model)
 - Claude Code (no API key required - requires Claude Code CLI)
-- Codex CLI (no API key required - requires Codex CLI app)
+- Codex CLI (no API key required - requires Codex CLI app; replace the model ID with whatever `codex models` reports, e.g. `gpt-5-codex`)
 
 Using the research model is optional but highly recommended. You will need at least ONE API key (unless using Claude Code or Codex CLI). Adding all API keys enables you to seamlessly switch between model providers at will.
 
@@ -173,7 +173,7 @@ Change the main model to claude-code/sonnet
 
 For example, to use Codex CLI (no API key required):
 ```txt
-Change the main model to codex-cli/codex-pro
+Change the main model to codex-cli/gpt-5-codex
 ```
 
 [Table of available models](docs/models.md) | [Claude Code setup](docs/examples/claude-code-usage.md) | [Codex CLI setup](docs/examples/codex-cli-usage.md)
@@ -288,7 +288,7 @@ Task Master now supports Claude models through the Claude Code CLI, which requir
 
 Task Master also supports the Codex CLI subscription client without storing an API key:
 
-- **Models**: `codex-cli/codex-pro` and `codex-cli/codex-lite`
+- **Models**: `codex-cli/gpt-5-codex` (replace with any model returned by `codex models`)
 - **Requirements**: Codex CLI desktop/app installed and authenticated
 - **Benefits**: No API key needed; routes requests through your local Codex agent
 

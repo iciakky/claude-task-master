@@ -3767,7 +3767,7 @@ Examples:
   $ task-master models --set-main anthropic.claude-3-sonnet-20240229-v1:0 --bedrock # Set custom Bedrock model for main role
   $ task-master models --set-main some/other-model --openrouter # Set custom OpenRouter model for main role
   $ task-master models --set-main sonnet --claude-code           # Set Claude Code model for main role
-  $ task-master models --set-main codex-pro --codex-cli             # Set Codex CLI model for main role
+  $ task-master models --set-main gpt-5-codex --codex-cli             # Set Codex CLI model for main role
   $ task-master models --set-main gpt-4o --azure # Set custom Azure OpenAI model for main role
   $ task-master models --set-main claude-3-5-sonnet@20241022 --vertex # Set custom Vertex AI model for main role
   $ task-master models --set-main gemini-2.5-pro --gemini-cli # Set Gemini CLI model for main role
