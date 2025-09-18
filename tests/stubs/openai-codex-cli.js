@@ -1,0 +1,1 @@
+﻿export class AbortError extends Error {}\n\nexport async function* query() {\n\tyield {\n\t\ttype: 'assistant',\n\t\tmessage: { content: [{ type: 'text', text: 'Hello' }] }\n\t};\n\tyield {\n\t\ttype: 'result',\n\t\tsubtype: 'done',\n\t\tusage: { output_tokens: 10, input_tokens: 5 }\n\t};\n}

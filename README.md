@@ -52,6 +52,7 @@ The following documentation is also available in the `docs` directory:
 - [Command Reference](docs/command-reference.md) - Complete list of all available commands
 - [Task Structure](docs/task-structure.md) - Understanding the task format and features
 - [Example Interactions](docs/examples.md) - Common Cursor AI interaction examples
+- [Codex CLI usage example](docs/examples/codex-cli-usage.md) - Configure and operate Codex CLI without API keys
 - [Migration Guide](docs/migration-guide.md) - Guide to migrating to the new project structure
 
 #### Quick Install for Cursor 1.0+ (One-Click)
@@ -75,8 +76,9 @@ At least one (1) of the following is required:
 - xAI API Key (for research or main model)
 - OpenRouter API Key (for research or main model)
 - Claude Code (no API key required - requires Claude Code CLI)
+- Codex CLI (no API key required - requires Codex CLI app)
 
-Using the research model is optional but highly recommended. You will need at least ONE API key (unless using Claude Code). Adding all API keys enables you to seamlessly switch between model providers at will.
+Using the research model is optional but highly recommended. You will need at least ONE API key (unless using Claude Code or Codex CLI). Adding all API keys enables you to seamlessly switch between model providers at will.
 
 ## Quick Start
 
@@ -169,7 +171,12 @@ For example, to use Claude Code (no API key required):
 Change the main model to claude-code/sonnet
 ```
 
-[Table of available models](docs/models.md) | [Claude Code setup](docs/examples/claude-code-usage.md)
+For example, to use Codex CLI (no API key required):
+```txt
+Change the main model to codex-cli/codex-pro
+```
+
+[Table of available models](docs/models.md) | [Claude Code setup](docs/examples/claude-code-usage.md) | [Codex CLI setup](docs/examples/codex-cli-usage.md)
 
 #### 4. Initialize Task Master
 
@@ -273,9 +280,19 @@ Task Master now supports Claude models through the Claude Code CLI, which requir
 
 - **Models**: `claude-code/opus` and `claude-code/sonnet`
 - **Requirements**: Claude Code CLI installed
-- **Benefits**: No API key needed, uses your local Claude instance
+- **Benefits**: No API key needed; uses your local Claude session
 
 [Learn more about Claude Code setup](docs/examples/claude-code-usage.md)
+
+## Codex CLI Support
+
+Task Master also supports the Codex CLI subscription client without storing an API key:
+
+- **Models**: `codex-cli/codex-pro` and `codex-cli/codex-lite`
+- **Requirements**: Codex CLI desktop/app installed and authenticated
+- **Benefits**: No API key needed; routes requests through your local Codex agent
+
+[Learn more about Codex CLI setup](docs/examples/codex-cli-usage.md)
 
 ## Troubleshooting
 

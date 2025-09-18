@@ -1,4 +1,4 @@
-import fs from 'fs';
+﻿import fs from 'fs';
 import path from 'path';
 import { jest } from '@jest/globals';
 import { fileURLToPath } from 'url';
@@ -257,6 +257,52 @@ const PARTIAL_CLAUDE_CODE_CONFIG = {
 	}
 };
 
+const VALID_CODEX_CLI_CONFIG = {
+	maxTurns: 6,
+	customSystemPrompt: 'You are the Codex CLI assistant',
+	appendSystemPrompt: 'Prefer concise diffs',
+	permissionMode: 'plan',
+	allowedTools: ['Read', 'Search'],
+	disallowedTools: ['Write'],
+	mcpServers: {
+		'codex-server': {
+			type: 'sse',
+			url: 'https://codex-cli.example.com',
+			headers: { Authorization: 'Bearer token' }
+		}
+	},
+	commandSpecific: {
+		'add-task': {
+			maxTurns: 4
+		}
+	}
+};
+
+const INVALID_CODEX_CLI_CONFIG = {
+	maxTurns: 'invalid',
+	allowedTools: 'bad-value',
+	mcpServers: {
+		'bad-server': {
+			type: 'invalid',
+			command: 123
+		}
+	},
+	commandSpecific: {
+		'bad-command': {
+			maxTurns: -5
+		}
+	}
+};
+
+const PARTIAL_CODEX_CLI_CONFIG = {
+	permissionMode: 'default',
+	commandSpecific: {
+		'scan-project': {
+			appendSystemPrompt: 'List key issues'
+		}
+	}
+};
+
 // Define spies globally to be restored in afterAll
 let consoleErrorSpy;
 let consoleWarnSpy;
@@ -434,6 +480,51 @@ describe('Claude Code Validation', () => {
 	});
 });
 
+// --- Codex CLI Validation Tests ---
+describe('Codex CLI Validation', () => {
+	test('validateCodexCliSettings should return valid settings for correct input', () => {
+		const result = configManager.validateCodexCliSettings(
+			VALID_CODEX_CLI_CONFIG
+		);
+
+		expect(result).toEqual(VALID_CODEX_CLI_CONFIG);
+		expect(consoleWarnSpy).not.toHaveBeenCalled();
+	});
+
+	test('validateCodexCliSettings should return empty object for invalid input', () => {
+		const result = configManager.validateCodexCliSettings(
+			INVALID_CODEX_CLI_CONFIG
+		);
+
+		expect(result).toEqual({});
+		expect(consoleWarnSpy).toHaveBeenCalledWith(
+			expect.stringContaining('Warning: Invalid Codex CLI settings in config')
+		);
+	});
+
+	test('validateCodexCliSettings should handle partial valid configuration', () => {
+		const result = configManager.validateCodexCliSettings(
+			PARTIAL_CODEX_CLI_CONFIG
+		);
+
+		expect(result).toEqual(PARTIAL_CODEX_CLI_CONFIG);
+		expect(consoleWarnSpy).not.toHaveBeenCalled();
+	});
+
+	test('validateCodexCliSettings should return empty object for empty input', () => {
+		const result = configManager.validateCodexCliSettings({});
+
+		expect(result).toEqual({});
+		expect(consoleWarnSpy).not.toHaveBeenCalled();
+	});
+
+	test('validateCodexCliSettings should handle null/undefined input', () => {
+		expect(configManager.validateCodexCliSettings(null)).toEqual({});
+		expect(configManager.validateCodexCliSettings(undefined)).toEqual({});
+		expect(consoleWarnSpy).toHaveBeenCalledTimes(2);
+	});
+});
+
 // --- Claude Code Getter Tests ---
 describe('Claude Code Getter Functions', () => {
 	test('getClaudeCodeSettings should return default empty object when no config exists', () => {
@@ -545,6 +636,105 @@ describe('Claude Code Getter Functions', () => {
 	});
 });
 
+// --- Codex CLI Getter Tests ---
+describe('Codex CLI Getter Functions', () => {
+	test('getCodexCliSettings should return default empty object when no config exists', () => {
+		fsExistsSyncSpy.mockReturnValue(false);
+		const settings = configManager.getCodexCliSettings(MOCK_PROJECT_ROOT);
+
+		expect(settings).toEqual({});
+	});
+
+	test('getCodexCliSettings should return merged settings from config file', () => {
+		const configWithCodexCli = {
+			...VALID_CUSTOM_CONFIG,
+			codexCli: VALID_CODEX_CLI_CONFIG
+		};
+
+		mockFindConfigPath.mockReturnValue(MOCK_CONFIG_PATH);
+
+		fsReadFileSyncSpy.mockImplementation((filePath) => {
+			if (filePath === MOCK_CONFIG_PATH)
+				return JSON.stringify(configWithCodexCli);
+			if (path.basename(filePath) === 'supported-models.json') {
+				return JSON.stringify({
+					openai: [{ id: 'gpt-4o' }],
+					google: [{ id: 'gemini-1.5-pro-latest' }],
+					anthropic: [{ id: 'claude-3-opus-20240229' }],
+					perplexity: [{ id: 'sonar-pro' }],
+					ollama: [],
+					openrouter: []
+				});
+			}
+			throw new Error(`Unexpected fs.readFileSync call: ${filePath}`);
+		});
+		fsExistsSyncSpy.mockReturnValue(true);
+
+		const settings = configManager.getCodexCliSettings(
+			MOCK_PROJECT_ROOT,
+			true
+		);
+
+		expect(settings).toEqual(VALID_CODEX_CLI_CONFIG);
+	});
+
+	test('getCodexCliSettingsForCommand should return command-specific settings', () => {
+		const configWithCodexCli = {
+			...VALID_CUSTOM_CONFIG,
+			codexCli: VALID_CODEX_CLI_CONFIG
+		};
+
+		mockFindConfigPath.mockReturnValue(MOCK_CONFIG_PATH);
+
+		fsReadFileSyncSpy.mockImplementation((filePath) => {
+			if (path.basename(filePath) === 'supported-models.json') return '{}';
+			if (filePath === MOCK_CONFIG_PATH)
+				return JSON.stringify(configWithCodexCli);
+			throw new Error(`Unexpected fs.readFileSync call: ${filePath}`);
+		});
+		fsExistsSyncSpy.mockReturnValue(true);
+
+		const settings = configManager.getCodexCliSettingsForCommand(
+			'add-task',
+			MOCK_PROJECT_ROOT,
+			true
+		);
+
+		const expectedSettings = {
+			...VALID_CODEX_CLI_CONFIG,
+			...VALID_CODEX_CLI_CONFIG.commandSpecific['add-task']
+		};
+
+		expect(settings).toEqual(expectedSettings);
+	});
+
+	test('getCodexCliSettingsForCommand should return global settings for unknown command', () => {
+		const configWithCodexCli = {
+			...VALID_CUSTOM_CONFIG,
+			codexCli: PARTIAL_CODEX_CLI_CONFIG
+		};
+
+		mockFindConfigPath.mockReturnValue(MOCK_CONFIG_PATH);
+
+		fsReadFileSyncSpy.mockImplementation((filePath) => {
+			if (path.basename(filePath) === 'supported-models.json') return '{}';
+			if (filePath === MOCK_CONFIG_PATH)
+				return JSON.stringify(configWithCodexCli);
+			throw new Error(`Unexpected fs.readFileSync call: ${filePath}`);
+		});
+		fsExistsSyncSpy.mockReturnValue(true);
+
+		const settings = configManager.getCodexCliSettingsForCommand(
+			'unknown-command',
+			MOCK_PROJECT_ROOT,
+			true
+		);
+
+		expect(settings).toEqual(PARTIAL_CODEX_CLI_CONFIG);
+	});
+});
+
+// --- getConfig Tests ---
 // --- getConfig Tests ---
 describe('getConfig Tests', () => {
 	test('should return default config if .taskmasterconfig does not exist', () => {
@@ -928,7 +1118,7 @@ describe('Getter Functions', () => {
 			},
 			global: {
 				projectName: 'Test Project',
-				responseLanguage: '中文'
+				responseLanguage: '銝剜?'
 			}
 		});
 
@@ -955,7 +1145,7 @@ describe('Getter Functions', () => {
 			configManager.getResponseLanguage(MOCK_PROJECT_ROOT);
 
 		// Assert
-		expect(responseLanguage).toBe('中文');
+		expect(responseLanguage).toBe('銝剜?');
 	});
 
 	test('getResponseLanguage should return undefined when responseLanguage is not in config', () => {
@@ -1162,3 +1352,7 @@ describe('Configuration Getters', () => {
 
 // Note: Tests for setMainModel, setResearchModel were removed as the functions were removed in the implementation.
 // If similar setter functions exist, add tests for them following the writeConfig pattern.
+
+
+
+

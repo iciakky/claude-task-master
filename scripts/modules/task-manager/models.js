@@ -511,6 +511,22 @@ async function setModel(role, modelId, options = {}) {
 						warningMessage = `Warning: Claude Code model '${modelId}' not found in supported models. Setting without validation.`;
 						report('warn', warningMessage);
 					}
+				} else if (providerHint === CUSTOM_PROVIDERS.CODEX_CLI) {
+					// Codex CLI provider - check if model exists in our list
+					determinedProvider = CUSTOM_PROVIDERS.CODEX_CLI;
+					const codexCliModels = availableModels.filter(
+						(m) => m.provider === 'codex-cli'
+					);
+					const codexCliModelData = codexCliModels.find(
+						(m) => m.id === modelId
+					);
+					if (codexCliModelData) {
+						modelData = codexCliModelData;
+						report('info', `Setting Codex CLI model '${modelId}'.`);
+					} else {
+						warningMessage = `Warning: Codex CLI model '${modelId}' not found in supported models. Setting without validation.`;
+						report('warn', warningMessage);
+					}
 				} else if (providerHint === CUSTOM_PROVIDERS.AZURE) {
 					// Set provider without model validation since Azure models are managed by Azure
 					determinedProvider = CUSTOM_PROVIDERS.AZURE;

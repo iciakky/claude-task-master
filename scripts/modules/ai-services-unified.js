@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ai-services-unified.js
  * Centralized AI service layer using provider modules and config-manager.
  */
@@ -41,6 +41,7 @@ import {
 	AzureProvider,
 	BedrockAIProvider,
 	ClaudeCodeProvider,
+	CodexCliProvider,
 	GeminiCliProvider,
 	GoogleAIProvider,
 	GroqProvider,
@@ -69,6 +70,7 @@ const PROVIDERS = {
 	azure: new AzureProvider(),
 	vertex: new VertexAIProvider(),
 	'claude-code': new ClaudeCodeProvider(),
+	'codex-cli': new CodexCliProvider(),
 	'gemini-cli': new GeminiCliProvider()
 };
 
@@ -914,3 +916,5 @@ export {
 	generateObjectService,
 	logAiUsage
 };
+
+

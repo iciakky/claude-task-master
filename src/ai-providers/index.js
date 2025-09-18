@@ -15,4 +15,5 @@ export { BedrockAIProvider } from './bedrock.js';
 export { AzureProvider } from './azure.js';
 export { VertexAIProvider } from './google-vertex.js';
 export { ClaudeCodeProvider } from './claude-code.js';
+export { CodexCliProvider } from './codex-cli.js';
 export { GeminiCliProvider } from './gemini-cli.js';

@@ -1,4 +1,4 @@
-import fs from 'fs';
+﻿import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import chalk from 'chalk';
@@ -75,7 +75,8 @@ const DEFAULTS = {
 		responseLanguage: 'English',
 		enableCodebaseAnalysis: true
 	},
-	claudeCode: {}
+	claudeCode: {},
+	codexCli: {}
 };
 
 // --- Internal Config Loading ---
@@ -150,7 +151,8 @@ function _loadAndValidateConfig(explicitRoot = null) {
 							: { ...defaults.models.fallback }
 				},
 				global: { ...defaults.global, ...parsedConfig?.global },
-				claudeCode: { ...defaults.claudeCode, ...parsedConfig?.claudeCode }
+				claudeCode: { ...defaults.claudeCode, ...parsedConfig?.claudeCode },
+				codexCli: { ...defaults.codexCli, ...parsedConfig?.codexCli }
 			};
 			configSource = `file (${configPath})`; // Update source info
 
@@ -158,7 +160,7 @@ function _loadAndValidateConfig(explicitRoot = null) {
 			if (isLegacy) {
 				console.warn(
 					chalk.yellow(
-						`⚠️  DEPRECATION WARNING: Found configuration in legacy location '${configPath}'. Please migrate to .taskmaster/config.json. Run 'task-master migrate' to automatically migrate your project.`
+						`??  DEPRECATION WARNING: Found configuration in legacy location '${configPath}'. Please migrate to .taskmaster/config.json. Run 'task-master migrate' to automatically migrate your project.`
 					)
 				);
 			}
@@ -195,6 +197,9 @@ function _loadAndValidateConfig(explicitRoot = null) {
 			}
 			if (config.claudeCode && !isEmpty(config.claudeCode)) {
 				config.claudeCode = validateClaudeCodeSettings(config.claudeCode);
+			}
+			if (config.codexCli && !isEmpty(config.codexCli)) {
+				config.codexCli = validateCodexCliSettings(config.codexCli);
 			}
 		} catch (error) {
 			// Use console.error for actual errors during parsing
@@ -319,51 +324,48 @@ function validateProviderModelCombination(providerName, modelId) {
  * @param {object} settings The settings to validate
  * @returns {object} The validated settings
  */
-function validateClaudeCodeSettings(settings) {
-	// Define the base settings schema without commandSpecific first
-	const BaseSettingsSchema = z.object({
-		maxTurns: z.number().int().positive().optional(),
-		customSystemPrompt: z.string().optional(),
-		appendSystemPrompt: z.string().optional(),
-		permissionMode: z
-			.enum(['default', 'acceptEdits', 'plan', 'bypassPermissions'])
-			.optional(),
-		allowedTools: z.array(z.string()).optional(),
-		disallowedTools: z.array(z.string()).optional(),
-		mcpServers: z
-			.record(
-				z.string(),
-				z.object({
-					type: z.enum(['stdio', 'sse']).optional(),
-					command: z.string(),
-					args: z.array(z.string()).optional(),
-					env: z.record(z.string()).optional(),
-					url: z.string().url().optional(),
-					headers: z.record(z.string()).optional()
-				})
-			)
-			.optional()
-	});
+const CLI_BASE_SETTINGS_SCHEMA = z.object({
+	maxTurns: z.number().int().positive().optional(),
+	customSystemPrompt: z.string().optional(),
+	appendSystemPrompt: z.string().optional(),
+	permissionMode: z
+		.enum(['default', 'acceptEdits', 'plan', 'bypassPermissions'])
+		.optional(),
+	allowedTools: z.array(z.string()).optional(),
+	disallowedTools: z.array(z.string()).optional(),
+	mcpServers: z
+		.record(
+			z.string(),
+			z.object({
+				type: z.enum(['stdio', 'sse']).optional(),
+				command: z.string(),
+				args: z.array(z.string()).optional(),
+				env: z.record(z.string()).optional(),
+				url: z.string().url().optional(),
+				headers: z.record(z.string()).optional()
+			})
+		)
+		.optional()
+});
 
-	// Define CommandSpecificSchema using the base schema
-	const CommandSpecificSchema = z.record(
-		z.enum(AI_COMMAND_NAMES),
-		BaseSettingsSchema
-	);
+const CLI_COMMAND_SPECIFIC_SCHEMA = z.record(
+	z.enum(AI_COMMAND_NAMES),
+	CLI_BASE_SETTINGS_SCHEMA
+);
 
-	// Define the full settings schema with commandSpecific
-	const SettingsSchema = BaseSettingsSchema.extend({
-		commandSpecific: CommandSpecificSchema.optional()
-	});
+const CLI_SETTINGS_SCHEMA = CLI_BASE_SETTINGS_SCHEMA.extend({
+	commandSpecific: CLI_COMMAND_SPECIFIC_SCHEMA.optional()
+});
 
+function validateCliSettings(settings, providerLabel) {
 	let validatedSettings = {};
 
 	try {
-		validatedSettings = SettingsSchema.parse(settings);
+		validatedSettings = CLI_SETTINGS_SCHEMA.parse(settings);
 	} catch (error) {
 		console.warn(
 			chalk.yellow(
-				`Warning: Invalid Claude Code settings in config: ${error.message}. Falling back to default.`
+				`Warning: Invalid ${providerLabel} settings in config: ${error.message}. Falling back to default.`
 			)
 		);
 
@@ -372,6 +374,16 @@ function validateClaudeCodeSettings(settings) {
 
 	return validatedSettings;
 }
+
+function validateClaudeCodeSettings(settings) {
+	return validateCliSettings(settings, 'Claude Code');
+}
+
+function validateCodexCliSettings(settings) {
+	return validateCliSettings(settings, 'Codex CLI');
+}
+
+
 
 // --- Claude Code Settings Getters ---
 
@@ -387,6 +399,21 @@ function getClaudeCodeSettingsForCommand(
 	forceReload = false
 ) {
 	const settings = getClaudeCodeSettings(explicitRoot, forceReload);
+	const commandSpecific = settings?.commandSpecific || {};
+	return { ...settings, ...commandSpecific[commandName] };
+}
+
+function getCodexCliSettings(explicitRoot = null, forceReload = false) {
+	const config = getConfig(explicitRoot, forceReload);
+	return { ...DEFAULTS.codexCli, ...(config?.codexCli || {}) };
+}
+
+function getCodexCliSettingsForCommand(
+	commandName,
+	explicitRoot = null,
+	forceReload = false
+) {
+	const settings = getCodexCliSettings(explicitRoot, forceReload);
 	const commandSpecific = settings?.commandSpecific || {};
 	return { ...settings, ...commandSpecific[commandName] };
 }
@@ -710,6 +737,8 @@ function isApiKeySet(providerName, session = null, projectRoot = null) {
 		CUSTOM_PROVIDERS.OLLAMA,
 		CUSTOM_PROVIDERS.BEDROCK,
 		CUSTOM_PROVIDERS.MCP,
+		CUSTOM_PROVIDERS.CLAUDE_CODE,
+		CUSTOM_PROVIDERS.CODEX_CLI,
 		CUSTOM_PROVIDERS.GEMINI_CLI
 	];
 
@@ -717,8 +746,8 @@ function isApiKeySet(providerName, session = null, projectRoot = null) {
 		return true; // Indicate key status is effectively "OK"
 	}
 
-	// Claude Code doesn't require an API key
-	if (providerName?.toLowerCase() === 'claude-code') {
+	// CLI providers that don't require an API key
+	if (['claude-code', 'codex-cli'].includes(providerName?.toLowerCase())) {
 		return true; // No API key needed
 	}
 
@@ -734,6 +763,7 @@ function isApiKeySet(providerName, session = null, projectRoot = null) {
 		groq: 'GROQ_API_KEY',
 		vertex: 'GOOGLE_API_KEY', // Vertex uses the same key as Google
 		'claude-code': 'CLAUDE_CODE_API_KEY', // Not actually used, but included for consistency
+		'codex-cli': 'CODEX_CLI_API_KEY', // Optional CLI auth placeholder
 		bedrock: 'AWS_ACCESS_KEY_ID' // Bedrock uses AWS credentials
 		// Add other providers as needed
 	};
@@ -1015,6 +1045,8 @@ function getBaseUrlForRole(role, explicitRoot = null) {
 export const providersWithoutApiKeys = [
 	CUSTOM_PROVIDERS.OLLAMA,
 	CUSTOM_PROVIDERS.BEDROCK,
+	CUSTOM_PROVIDERS.CLAUDE_CODE,
+	CUSTOM_PROVIDERS.CODEX_CLI,
 	CUSTOM_PROVIDERS.GEMINI_CLI,
 	CUSTOM_PROVIDERS.MCP
 ];
@@ -1028,10 +1060,13 @@ export {
 	// Claude Code settings
 	getClaudeCodeSettings,
 	getClaudeCodeSettingsForCommand,
+	getCodexCliSettings,
+	getCodexCliSettingsForCommand,
 	// Validation
 	validateProvider,
 	validateProviderModelCombination,
 	validateClaudeCodeSettings,
+	validateCodexCliSettings,
 	VALIDATED_PROVIDERS,
 	CUSTOM_PROVIDERS,
 	ALL_PROVIDERS,
@@ -1075,3 +1110,10 @@ export {
 	getVertexProjectId,
 	getVertexLocation
 };
+
+
+
+
+
+
+

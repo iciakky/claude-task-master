@@ -25,7 +25,8 @@ export default {
 
 	// Set moduleNameMapper for absolute paths
 	moduleNameMapper: {
-		'^@/(.*)$': '<rootDir>/$1'
+		'^@/(.*)$': '<rootDir>/$1',
+		'^@openai/codex-cli$': '<rootDir>/tests/stubs/openai-codex-cli.js'
 	},
 
 	// Setup module aliases
